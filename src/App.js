@@ -12,7 +12,7 @@ class Guest {
   }
 }
 
-function Form({ guestList, setGuestList }) {
+function Form({ guestList, setGuestList, loading }) {
   const [nameValue, setNameValue] = useState(new Guest('', '', ''));
 
   return (
@@ -24,6 +24,7 @@ function Form({ guestList, setGuestList }) {
         onChange={(event) => {
           setNameValue(new Guest('', event.target.value, nameValue.lastName));
         }}
+        disabled={loading}
       />
       <br />
       <label htmlFor="lastName">Last name</label>
@@ -61,6 +62,8 @@ function Form({ guestList, setGuestList }) {
             setNameValue(new Guest('', '', ''));
           }
         }}
+
+        disabled={loading}
       />
     </div>
   );
@@ -123,7 +126,12 @@ function ControlingUnit({ guestList, setGuestList, guest }) {
   );
 }
 
-function GuestList({ guestList, setGuestList }) {
+function GuestList({ guestList, setGuestList, loading }) {
+  if(loading){
+    return (
+      <p>Loading...</p>
+    );
+  }else{
   return (
     <div data-test-id="guest">
       {guestList.map((guest) => {
@@ -146,14 +154,16 @@ function GuestList({ guestList, setGuestList }) {
         );
       })}
     </div>
-  );
+  );}
 }
 
 function App() {
   const [guestList, setGuestList] = useState([]);
+  const [loading, setLoading] = useState(false);
 
   // initialize guestList
   useEffect(()=>{
+    setLoading(true);
     fetch(`${baseUrl}/guests`).then((resolve)=>{
       resolve.json().then((resolve)=>{
         let newGuestList = new Array();
@@ -161,6 +171,7 @@ function App() {
           newGuestList.push(new Guest(resolve[index].id, resolve[index].firstName, resolve[index].lastName, resolve[index].attending));
         }
         setGuestList(newGuestList);
+        setLoading(false);
       });
     });
   },[]);
@@ -170,8 +181,8 @@ function App() {
   return (
     <div className="App">
       <main>
-        <Form guestList={guestList} setGuestList={setGuestList} />
-        <GuestList guestList={guestList} setGuestList={setGuestList} />
+        <Form guestList={guestList} setGuestList={setGuestList} loading={loading}/>
+        <GuestList guestList={guestList} setGuestList={setGuestList} loading={loading} />
       </main>
     </div>
   );
