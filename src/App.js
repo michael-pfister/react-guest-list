@@ -1,79 +1,19 @@
 import './App.css';
 import { useEffect, useState } from 'react';
 
-class Guest {
-  firstName;
-  lastName;
-  attending = false;
+const baseUrl = 'https://react-guest-list-database.herokuapp.com';
 
-  constructor(firstName, lastName) {
+class Guest {
+  constructor(id, firstName, lastName, attending) {
+    this.id = id;
     this.firstName = firstName;
     this.lastName = lastName;
-  }
-}
-
-class DataBase {
-  static dataBaseUrl = 'https://react-guest-list-database.herokuapp.com/';
-
-  static getGuests(setGuestList) {
-    fetch(this.dataBaseUrl + 'guests')
-      .then((response) => {
-        response
-          .json()
-          .then((json) => {
-            setGuestList(
-              json.map((element) => {
-                const guest = new Guest(element.firstName, element.lastName);
-                guest.attending = element.attending;
-                return guest;
-              }),
-            );
-            console.log(json);
-          })
-          .catch((error) => {
-            throw error;
-          });
-      })
-      .catch((error) => {
-        throw error;
-      });
-  }
-
-  static setGuests(guestList) {
-    // delete all guests
-    fetch(`${this.dataBaseUrl}guests`, {
-      method: 'DELETE',
-    }).catch((error) => {
-      throw error;
-    });
-
-    // add every guest
-    let guest = new Guest();
-    let firstName = '';
-    let lastName = '';
-    let attending = false;
-
-    for (guest of guestList) {
-      // cannot refer to these values inside of fetch()
-      firstName = guest.firstName;
-      lastName = guest.lastName;
-      attending = guest.attending;
-
-      fetch(`${this.dataBaseUrl}guests`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ firstName, lastName, attending }),
-      }).catch((error) => {
-        throw error;
-      });
-    }
+    this.attending = attending;
   }
 }
 
 function Form({ guestList, setGuestList }) {
-  const [nameValue, setNameValue] = useState(new Guest('', ''));
+  const [nameValue, setNameValue] = useState(new Guest('', '', ''));
 
   return (
     <div>
@@ -82,7 +22,7 @@ function Form({ guestList, setGuestList }) {
         id="firstName"
         value={nameValue.firstName}
         onChange={(event) => {
-          setNameValue(new Guest(event.target.value, nameValue.lastName));
+          setNameValue(new Guest('', event.target.value, nameValue.lastName));
         }}
       />
       <br />
@@ -91,15 +31,34 @@ function Form({ guestList, setGuestList }) {
         id="lastName"
         value={nameValue.lastName}
         onChange={(event) => {
-          setNameValue(new Guest(nameValue.firstName, event.target.value));
+          setNameValue(new Guest('', nameValue.firstName, event.target.value));
         }}
         onKeyDown={(event) => {
+
           if (event.key === 'Enter') {
-            setGuestList([
-              ...guestList,
-              new Guest(nameValue.firstName, nameValue.lastName),
-            ]);
-            setNameValue(new Guest('', ''));
+            let firstName = nameValue.firstName;
+            let lastName = nameValue.lastName;
+
+            // update database and adapt local guestList afterwards
+            fetch(`${baseUrl}/guests`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ firstName, lastName }),
+            }).then(()=>{
+              fetch(`${baseUrl}/guests`).then((resolve)=>{
+                resolve.json().then((resolve)=>{
+                  let newGuestList = new Array();
+                  for (let index in resolve){
+                    newGuestList.push(new Guest(resolve[index].id, resolve[index].firstName, resolve[index].lastName, resolve[index].attending));
+                  }
+                  setGuestList(newGuestList);
+                });
+              });
+            });
+
+            setNameValue(new Guest('', '', ''));
           }
         }}
       />
@@ -107,35 +66,47 @@ function Form({ guestList, setGuestList }) {
   );
 }
 
+function RemoveGuest(guestList, setGuestList, guest){
+  setGuestList(
+    guestList.filter((element) => {
+      return element !== guest;
+    }),
+  );
+
+  // update database
+  fetch(`${baseUrl}/guests/${guest.id}`, { method: 'DELETE' });
+}
+
+function setAttendance(guestList, setGuestList, guest) {
+  setGuestList(
+    guestList.map((element) => {
+      if (element === guest) {
+        element.attending = !element.attending;
+      }
+
+      return element;
+    }),
+  );
+
+  // update database
+  let attending = guest.attending;
+  fetch(`${baseUrl}/guests/${guest.id}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ attending }),
+  });
+}
+
 function ControlingUnit({ guestList, setGuestList, guest }) {
-  // Don't put functions inside of components because it will create a new instance of the function on every render
-  function RemoveGuest() {
-    setGuestList(
-      guestList.filter((element) => {
-        return element !== guest;
-      }),
-    );
-  }
-
-  function setAttendance() {
-    setGuestList(
-      guestList.map((element) => {
-        if (element === guest) {
-          element.attending = !element.attending;
-        }
-
-        return element;
-      }),
-    );
-  }
-
   return (
     <div>
       <input
         type="checkbox"
         aria-label="attending"
         onChange={() => {
-          setAttendance();
+          setAttendance(guestList, setGuestList, guest);
         }}
         checked={guest.attending}
       />
@@ -143,7 +114,7 @@ function ControlingUnit({ guestList, setGuestList, guest }) {
       <button
         aria-label="Remove"
         onClick={() => {
-          RemoveGuest();
+          RemoveGuest(guestList, setGuestList, guest);
         }}
       >
         Remove
@@ -181,13 +152,20 @@ function GuestList({ guestList, setGuestList }) {
 function App() {
   const [guestList, setGuestList] = useState([]);
 
-  /* useEffect(() => {
-    DataBase.getGuests(setGuestList);
-  }, []);
+  // initialize guestList
+  useEffect(()=>{
+    fetch(`${baseUrl}/guests`).then((resolve)=>{
+      resolve.json().then((resolve)=>{
+        let newGuestList = new Array();
+        for (let index in resolve){
+          newGuestList.push(new Guest(resolve[index].id, resolve[index].firstName, resolve[index].lastName, resolve[index].attending));
+        }
+        setGuestList(newGuestList);
+      });
+    });
+  },[]);
 
-  useEffect(() => {
-    DataBase.setGuests(guestList);
-  }, [guestList]); */
+
 
   return (
     <div className="App">
