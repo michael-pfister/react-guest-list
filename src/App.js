@@ -16,55 +16,58 @@ function Form({ guestList, setGuestList, loading }) {
   const [nameValue, setNameValue] = useState(new Guest('', '', ''));
 
   return (
-    <div>
-      <label htmlFor="firstName">First name</label>
-      <input
-        id="firstName"
-        value={nameValue.firstName}
-        onChange={(event) => {
-          setNameValue(new Guest('', event.target.value, nameValue.lastName));
-        }}
-        disabled={loading}
-      />
-      <br />
-      <label htmlFor="lastName">Last name</label>
-      <input
-        id="lastName"
-        value={nameValue.lastName}
-        onChange={(event) => {
-          setNameValue(new Guest('', nameValue.firstName, event.target.value));
-        }}
-        onKeyDown={(event) => {
+    <div className='Form'>
+      <div className='inputField'>
+        <label htmlFor="firstName">First name</label>
+        <input
+          id="firstName"
+          value={nameValue.firstName}
+          onChange={(event) => {
+            setNameValue(new Guest('', event.target.value, nameValue.lastName));
+          }}
+          disabled={loading}
+        />
+      </div>
+      <div className='inputField'>
+        <label htmlFor="lastName">Last name</label>
+        <input
+          id="lastName"
+          value={nameValue.lastName}
+          onChange={(event) => {
+            setNameValue(new Guest('', nameValue.firstName, event.target.value));
+          }}
+          onKeyDown={(event) => {
 
-          if (event.key === 'Enter') {
-            let firstName = nameValue.firstName;
-            let lastName = nameValue.lastName;
+            if (event.key === 'Enter') {
+              let firstName = nameValue.firstName;
+              let lastName = nameValue.lastName;
 
-            // update database and adapt local guestList afterwards
-            fetch(`${baseUrl}/guests`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({ firstName, lastName }),
-            }).then(()=>{
-              fetch(`${baseUrl}/guests`).then((resolve)=>{
-                resolve.json().then((resolve)=>{
-                  let newGuestList = new Array();
-                  for (let index in resolve){
-                    newGuestList.push(new Guest(resolve[index].id, resolve[index].firstName, resolve[index].lastName, resolve[index].attending));
-                  }
-                  setGuestList(newGuestList);
+              // update database and adapt local guestList afterwards
+              fetch(`${baseUrl}/guests`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ firstName, lastName }),
+              }).then(()=>{
+                fetch(`${baseUrl}/guests`).then((resolve)=>{
+                  resolve.json().then((resolve)=>{
+                    let newGuestList = new Array();
+                    for (let index in resolve){
+                      newGuestList.push(new Guest(resolve[index].id, resolve[index].firstName, resolve[index].lastName, resolve[index].attending));
+                    }
+                    setGuestList(newGuestList);
+                  });
                 });
               });
-            });
 
-            setNameValue(new Guest('', '', ''));
-          }
-        }}
+              setNameValue(new Guest('', '', ''));
+            }
+          }}
 
-        disabled={loading}
-      />
+          disabled={loading}
+        />
+      </div>
     </div>
   );
 }
@@ -104,8 +107,9 @@ function setAttendance(guestList, setGuestList, guest) {
 
 function ControlingUnit({ guestList, setGuestList, guest }) {
   return (
-    <div>
+    <div className='ControlingUnit'>
       <input
+        className='CheckBox'
         type="checkbox"
         aria-label="attending"
         onChange={() => {
@@ -113,7 +117,6 @@ function ControlingUnit({ guestList, setGuestList, guest }) {
         }}
         checked={guest.attending}
       />
-      <br />
       <button
         aria-label="Remove"
         onClick={() => {
@@ -133,18 +136,15 @@ function GuestList({ guestList, setGuestList, loading }) {
     );
   }else{
   return (
-    <div data-test-id="guest">
+    <div data-test-id="guest" className='GuestList'>
       {guestList.map((guest) => {
         return (
           <div key={guestList.indexOf(guest)}>
             {/* rework this to unique keys, id is causing problems (removing guest 0 => guest[1] gets key 0) */}
             <hr />
-            <span>{guest.firstName}</span>
+            <span>{guest.firstName} {guest.lastName}</span>
             <br />
-            <span>{guest.lastName}</span>
-            <br />
-            <span>{guest.attending.toString()}</span>
-            <br />
+            {guest.attending ? <span>attending</span> : <span>not attending</span>}
             <ControlingUnit
               guestList={guestList}
               setGuestList={setGuestList}
@@ -181,6 +181,9 @@ function App() {
   return (
     <div className="App">
       <main>
+        <header>
+          <h1>React Guest List</h1>
+        </header>
         <Form guestList={guestList} setGuestList={setGuestList} loading={loading}/>
         <GuestList guestList={guestList} setGuestList={setGuestList} loading={loading} />
       </main>
