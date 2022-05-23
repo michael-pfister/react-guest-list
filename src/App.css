@@ -1,15 +1,15 @@
-body{
+body {
   font-family: 'Quicksand', sans-serif;
   color: white;
   background-color: #1e1e1e;
 }
 
-header{
+header {
   margin: 0;
   text-align: left;
   font-size: small;
   padding: 0 2rem;
-  border: 2px solid white;
+  border-bottom: 1px solid black;
   color: white;
 }
 
@@ -25,14 +25,14 @@ header{
   gap: 5px;
 }
 
-.inputField{
+.inputField {
   display: inherit;
   justify-content: center;
   width: 100%;
   gap: 10px;
 }
 
-.ControlingUnit{
+.ControlingUnit {
   display: flex;
   justify-content: center;
   align-items: center;
@@ -40,22 +40,32 @@ header{
 }
 
 button {
-  padding: 10px 32px;
+  padding: 4px 12px;
   text-align: center;
   font-size: 16px;
   margin: 4px 2px;
   cursor: pointer;
   background-color: white;
+  border-radius: 5px;
   color: black;
   border: 2px solid #555555;
 }
 
-button:hover{
+button:hover {
   background-color: black;
   color: white;
 }
 
-.CheckBox{
-  height: 40px;
-  width: 40px;
+.CheckBox {
+  height: 30px;
+  width: 30px;
+}
+
+hr {
+  background-color: black;
+}
+
+.guest {
+  border-top: 1px solid black;
+  padding: 10px 0;
 }

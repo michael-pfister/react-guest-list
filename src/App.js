@@ -163,9 +163,12 @@ function GuestList({ guestList, setGuestList, loading }) {
       <div className="GuestList">
         {guestList.map((guest) => {
           return (
-            <div key={guestList.indexOf(guest)} data-test-id="guest">
+            <div
+              key={guestList.indexOf(guest)}
+              className="guest"
+              data-test-id="guest"
+            >
               {/* rework this to unique keys, id is causing problems (removing guest 0 => guest[1] gets key 0) */}
-              <hr />
               <span>
                 {guest.firstName} {guest.lastName}
               </span>
