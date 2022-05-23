@@ -160,10 +160,10 @@ function GuestList({ guestList, setGuestList, loading }) {
     return <p>Loading...</p>;
   } else {
     return (
-      <div data-test-id="guest" className="GuestList">
+      <div className="GuestList">
         {guestList.map((guest) => {
           return (
-            <div key={guestList.indexOf(guest)}>
+            <div key={guestList.indexOf(guest)} data-test-id="guest">
               {/* rework this to unique keys, id is causing problems (removing guest 0 => guest[1] gets key 0) */}
               <hr />
               <span>
