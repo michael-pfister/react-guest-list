@@ -12,12 +12,12 @@ class Guest {
   }
 }
 
-function Form({ guestList, setGuestList, loading }) {
+function Form({ setGuestList, loading }) {
   const [nameValue, setNameValue] = useState(new Guest('', '', ''));
 
   return (
-    <div className='Form'>
-      <div className='inputField'>
+    <div className="Form">
+      <div className="inputField">
         <label htmlFor="firstName">First name</label>
         <input
           id="firstName"
@@ -28,19 +28,20 @@ function Form({ guestList, setGuestList, loading }) {
           disabled={loading}
         />
       </div>
-      <div className='inputField'>
+      <div className="inputField">
         <label htmlFor="lastName">Last name</label>
         <input
           id="lastName"
           value={nameValue.lastName}
           onChange={(event) => {
-            setNameValue(new Guest('', nameValue.firstName, event.target.value));
+            setNameValue(
+              new Guest('', nameValue.firstName, event.target.value),
+            );
           }}
           onKeyDown={(event) => {
-
             if (event.key === 'Enter') {
-              let firstName = nameValue.firstName;
-              let lastName = nameValue.lastName;
+              const firstName = nameValue.firstName;
+              const lastName = nameValue.lastName;
 
               // update database and adapt local guestList afterwards
               fetch(`${baseUrl}/guests`, {
@@ -49,22 +50,41 @@ function Form({ guestList, setGuestList, loading }) {
                   'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({ firstName, lastName }),
-              }).then(()=>{
-                fetch(`${baseUrl}/guests`).then((resolve)=>{
-                  resolve.json().then((resolve)=>{
-                    let newGuestList = new Array();
-                    for (let index in resolve){
-                      newGuestList.push(new Guest(resolve[index].id, resolve[index].firstName, resolve[index].lastName, resolve[index].attending));
-                    }
-                    setGuestList(newGuestList);
-                  });
+              })
+                .then(() => {
+                  fetch(`${baseUrl}/guests`)
+                    .then((resolve) => {
+                      resolve
+                        .json()
+                        .then((json) => {
+                          const newGuestList = [];
+                          for (const index in json) {
+                            newGuestList.push(
+                              new Guest(
+                                json[index].id,
+                                json[index].firstName,
+                                json[index].lastName,
+                                json[index].attending,
+                              ),
+                            );
+                          }
+                          setGuestList(newGuestList);
+                        })
+                        .catch((reject) => {
+                          throw reject;
+                        });
+                    })
+                    .catch((reject) => {
+                      throw reject;
+                    });
+                })
+                .catch((reject) => {
+                  throw reject;
                 });
-              });
 
               setNameValue(new Guest('', '', ''));
             }
           }}
-
           disabled={loading}
         />
       </div>
@@ -72,7 +92,7 @@ function Form({ guestList, setGuestList, loading }) {
   );
 }
 
-function RemoveGuest(guestList, setGuestList, guest){
+function RemoveGuest(guestList, setGuestList, guest) {
   setGuestList(
     guestList.filter((element) => {
       return element !== guest;
@@ -80,7 +100,11 @@ function RemoveGuest(guestList, setGuestList, guest){
   );
 
   // update database
-  fetch(`${baseUrl}/guests/${guest.id}`, { method: 'DELETE' });
+  fetch(`${baseUrl}/guests/${guest.id}`, { method: 'DELETE' }).catch(
+    (reject) => {
+      throw reject;
+    },
+  );
 }
 
 function setAttendance(guestList, setGuestList, guest) {
@@ -95,21 +119,23 @@ function setAttendance(guestList, setGuestList, guest) {
   );
 
   // update database
-  let attending = guest.attending;
+  const attending = guest.attending;
   fetch(`${baseUrl}/guests/${guest.id}`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({ attending }),
+  }).catch((reject) => {
+    throw reject;
   });
 }
 
 function ControlingUnit({ guestList, setGuestList, guest }) {
   return (
-    <div className='ControlingUnit'>
+    <div className="ControlingUnit">
       <input
-        className='CheckBox'
+        className="CheckBox"
         type="checkbox"
         aria-label="attending"
         onChange={() => {
@@ -130,31 +156,36 @@ function ControlingUnit({ guestList, setGuestList, guest }) {
 }
 
 function GuestList({ guestList, setGuestList, loading }) {
-  if(loading){
+  if (loading) {
+    return <p>Loading...</p>;
+  } else {
     return (
-      <p>Loading...</p>
+      <div data-test-id="guest" className="GuestList">
+        {guestList.map((guest) => {
+          return (
+            <div key={guestList.indexOf(guest)}>
+              {/* rework this to unique keys, id is causing problems (removing guest 0 => guest[1] gets key 0) */}
+              <hr />
+              <span>
+                {guest.firstName} {guest.lastName}
+              </span>
+              <br />
+              {guest.attending ? (
+                <span>attending</span>
+              ) : (
+                <span>not attending</span>
+              )}
+              <ControlingUnit
+                guestList={guestList}
+                setGuestList={setGuestList}
+                guest={guest}
+              />
+            </div>
+          );
+        })}
+      </div>
     );
-  }else{
-  return (
-    <div data-test-id="guest" className='GuestList'>
-      {guestList.map((guest) => {
-        return (
-          <div key={guestList.indexOf(guest)}>
-            {/* rework this to unique keys, id is causing problems (removing guest 0 => guest[1] gets key 0) */}
-            <hr />
-            <span>{guest.firstName} {guest.lastName}</span>
-            <br />
-            {guest.attending ? <span>attending</span> : <span>not attending</span>}
-            <ControlingUnit
-              guestList={guestList}
-              setGuestList={setGuestList}
-              guest={guest}
-            />
-          </div>
-        );
-      })}
-    </div>
-  );}
+  }
 }
 
 function App() {
@@ -162,21 +193,35 @@ function App() {
   const [loading, setLoading] = useState(false);
 
   // initialize guestList
-  useEffect(()=>{
+  useEffect(() => {
     setLoading(true);
-    fetch(`${baseUrl}/guests`).then((resolve)=>{
-      resolve.json().then((resolve)=>{
-        let newGuestList = new Array();
-        for (let index in resolve){
-          newGuestList.push(new Guest(resolve[index].id, resolve[index].firstName, resolve[index].lastName, resolve[index].attending));
-        }
-        setGuestList(newGuestList);
-        setLoading(false);
+    fetch(`${baseUrl}/guests`)
+      .then((resolve) => {
+        resolve
+          .json()
+          .then((json) => {
+            const newGuestList = [];
+            for (const index in json) {
+              newGuestList.push(
+                new Guest(
+                  json[index].id,
+                  json[index].firstName,
+                  json[index].lastName,
+                  json[index].attending,
+                ),
+              );
+            }
+            setGuestList(newGuestList);
+            setLoading(false);
+          })
+          .catch((reject) => {
+            throw reject;
+          });
+      })
+      .catch((reject) => {
+        throw reject;
       });
-    });
-  },[]);
-
-
+  }, []);
 
   return (
     <div className="App">
@@ -184,8 +229,16 @@ function App() {
         <header>
           <h1>React Guest List</h1>
         </header>
-        <Form guestList={guestList} setGuestList={setGuestList} loading={loading}/>
-        <GuestList guestList={guestList} setGuestList={setGuestList} loading={loading} />
+        <Form
+          guestList={guestList}
+          setGuestList={setGuestList}
+          loading={loading}
+        />
+        <GuestList
+          guestList={guestList}
+          setGuestList={setGuestList}
+          loading={loading}
+        />
       </main>
     </div>
   );
